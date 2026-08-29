@@ -17,6 +17,7 @@ import pandas as pd
 
 import spacing as sp
 import width as W
+from datapaths import ROOT as DATA_ROOT
 
 LEVELS = [0.75, 0.50, 0.25, 0.10]
 
@@ -64,7 +65,7 @@ def widths_at_levels(grey, sk, um_per_px, search_um=W.SEARCH_UM, step_px=W.STEP_
 if __name__ == '__main__':
     rows = []
     for hpf in (32, 52):
-        for tf in sorted(glob.glob('/mnt/user-data/uploads/analysis/%dhpf/*- Copy (2).tif' % hpf)):
+        for tf in sorted(glob.glob(DATA_ROOT + '/%dhpf/*- Copy (2).tif' % hpf)):
             raw = tf.replace(' - Copy (2)', '')
             name = os.path.basename(raw)[:-4]
             um = sp.read_scale(tf)

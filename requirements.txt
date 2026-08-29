@@ -4,5 +4,7 @@ matplotlib>=3.7
 scipy>=1.10
 scikit-image>=0.20
 tifffile>=2023.1
-# imported lazily by a few reporting paths in lib/carma_stats.py
+# LZW-compressed TIFFs need this; tifffile cannot decode the traced images without it
+imagecodecs>=2023.1
+# imported lazily by a few reporting paths in pipeline/fieldstats.py
 statsmodels>=0.14

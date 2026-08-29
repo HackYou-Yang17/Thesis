@@ -10,8 +10,8 @@ single cell, so the mechanism is measured rather than argued.
 """
 import json, numpy as np
 import sim3
-from modelling.CARMA.carma_6_particle import cell_particle as CP
-from modelling.CARMA.carma_6_particle.cell_particle import P
+from bundle_model import cell_particle as CP
+from bundle_model.cell_particle import P
 
 V13 = json.load(open("V13_TUNE.json"))["V13"]
 STEPS = 4000

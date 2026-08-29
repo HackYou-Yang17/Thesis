@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import json, shutil, subprocess, sys
 
-PARTICLE = "modelling/CARMA/carma_6_particle/cell_particle.py"
+PARTICLE = "bundle_model/cell_particle.py"
 ORIG = "cell_particle_ORIG_backup.py"      # the centroid rule, byte-for-byte
 FIXED = "cell_particle_FIXED.py"           # the long-axis rule
 SEEDS = "6001 6002 6003 6004 6005 6006"

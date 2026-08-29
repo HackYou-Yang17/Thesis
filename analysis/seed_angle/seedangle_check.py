@@ -17,8 +17,8 @@ This script only counts and maps. It does not run the simulation.
 from __future__ import annotations
 
 import numpy as np
-from modelling.CARMA.carma_6_particle import cell_particle as CP
-from modelling.CARMA.carma_6_particle.parameters import Params, UM_PER_LATTICE as LU
+from bundle_model import cell_particle as CP
+from bundle_model.parameters import Params, UM_PER_LATTICE as LU
 
 P = CP.P
 

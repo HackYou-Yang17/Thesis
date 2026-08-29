@@ -16,8 +16,9 @@ from skimage.filters import gaussian
 from skimage.morphology import h_minima, binary_closing, disk, remove_small_objects
 from skimage.segmentation import watershed, clear_border
 from skimage.measure import label, regionprops
+from datapaths import ROOT as DATA_ROOT
 
-PATH = '/mnt/user-data/uploads/analysis/52hpf cell size.tif'
+PATH = DATA_ROOT + '/52hpf cell size.tif'
 UM = 0.4815
 
 

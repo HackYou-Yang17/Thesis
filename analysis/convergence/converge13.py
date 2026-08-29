@@ -63,7 +63,7 @@ CONDITIONS = {
 def check_lambdas():
     """Trap 2, asserted rather than assumed."""
     import sim3
-    from modelling.CARMA.carma_6_particle.cell_particle import P
+    from bundle_model.cell_particle import P
     sim3.configure({**V13, "n_sub": 4})
     P.dt = 1.0
     n4 = (P.k_nucleate, P.k_branch, P.k_grow, P.steps)
@@ -85,8 +85,8 @@ def _one(args):
     cond, cfg, seed = args
     import sim3
     import measure as M
-    from modelling.CARMA.carma_6_particle import multicell_particle as mc
-    from modelling.CARMA.carma_6_particle.cell_particle import P
+    from bundle_model import multicell_particle as mc
+    from bundle_model.cell_particle import P
     t0 = time.time()
     sim3.configure({**V13, "n_sub": cfg["n_sub"]})
     P.dt = cfg["dt"]                     # P.steps and every lambda follow from this

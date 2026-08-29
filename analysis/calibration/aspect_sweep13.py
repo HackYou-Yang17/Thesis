@@ -38,7 +38,7 @@ import json, os, re, shutil, subprocess, sys
 import numpy as np
 import pandas as pd
 
-PARAMS = "modelling/CARMA/carma_6_particle/parameters.py"
+PARAMS = "bundle_model/parameters.py"
 AREA = 38.9 * 12.5
 ASPECTS = [1.0, 1.6, 2.2, 3.112, 4.4, 6.2]      # 3.112 is the v12 cell
 SEEDS = [7701, 7702, 7703, 7704, 7705, 7706]
@@ -53,7 +53,7 @@ from multiprocessing import Pool
 def _one(args):
     knobs, seed = args
     import sim3
-    from modelling.CARMA.carma_6_particle import multicell_particle as mc
+    from bundle_model import multicell_particle as mc
     t0 = time.time()
     out = sim3.run_once(knobs, seed=seed)
     rows = [dict(seed=seed, hpf=h, n_cells=mc.N_CELLS, crop=mc.CROP_SIZE,
@@ -78,7 +78,7 @@ def set_cell(length, height):
     src = re.sub(r"^CELL_HEIGHT = [0-9.]+", f"CELL_HEIGHT = {height:.4f}", src, count=1, flags=re.M)
     with open(PARAMS, "w") as fh:
         fh.write(src); fh.flush(); os.fsync(fh.fileno())
-    shutil.rmtree("modelling/CARMA/carma_6_particle/__pycache__", ignore_errors=True)
+    shutil.rmtree("bundle_model/__pycache__", ignore_errors=True)
 
 
 if __name__ == "__main__":

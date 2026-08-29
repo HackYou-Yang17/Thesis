@@ -43,8 +43,9 @@ from skimage.morphology import skeletonize, remove_small_objects
 
 import spacing as sp
 import width as W
+from datapaths import ROOT as DATA_ROOT
 
-ROOT = '/mnt/user-data/uploads/analysis'
+ROOT = DATA_ROOT
 HPF = [32, 36, 40, 44, 48, 52]
 FIBRE_SCALES_UM = (0.4, 0.9)      # the project's established fibre scale band
 PSF_UM = 0.23                     # diffraction, 63x / NA 1.4

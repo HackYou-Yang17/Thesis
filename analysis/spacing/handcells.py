@@ -13,8 +13,9 @@ import tifffile
 from scipy import ndimage as ndi
 from skimage.morphology import binary_closing, disk
 from skimage.measure import label, regionprops
+from datapaths import ROOT as DATA_ROOT
 
-PATH = '/mnt/user-data/uploads/analysis/52hpf cell size - Copy.tif'
+PATH = DATA_ROOT + '/52hpf cell size - Copy.tif'
 UM = 0.4815
 
 
