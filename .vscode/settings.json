@@ -1,0 +1,19 @@
+﻿{
+  "python.analysis.extraPaths": [
+    "./pipeline",
+    "./pipeline/bundle_model"
+  ],
+  "python.autoComplete.extraPaths": [
+    "./pipeline",
+    "./pipeline/bundle_model"
+  ],
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder}\\pipeline;${workspaceFolder}\\pipeline\\bundle_model"
+  },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}/pipeline:${workspaceFolder}/pipeline/bundle_model"
+  },
+  "terminal.integrated.env.osx": {
+    "PYTHONPATH": "${workspaceFolder}/pipeline:${workspaceFolder}/pipeline/bundle_model"
+  }
+}

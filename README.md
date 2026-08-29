@@ -105,6 +105,10 @@ $env:PYTHONPATH = "$PWD\pipeline;$PWD\pipeline\bundle_model"
 The second entry exists because `curved_refs.py` and `traced_c4.py` import `order_params`
 by its bare name rather than through the package path.
 
+In VS Code none of this is needed: `.vscode/settings.json` is committed with the repo, so
+Pylance resolves the imports and every new integrated terminal already has `PYTHONPATH`
+set. Reload the window after cloning for it to take effect.
+
 Scripts read and write their input and output files in the **current working directory**,
 so run each one from the directory holding its inputs.
 
@@ -143,6 +147,10 @@ Every script finds them through `pipeline/datapaths.py`, which resolves in this 
 
 So the pipeline runs from a clean clone with no configuration. Point `TRACED_ROOT` at
 another directory to run it against a different set of traces.
+
+Reading these files prints `tifffile.imagej_metadata raised IndexError` on stderr. That is
+`tifffile` failing to parse an ImageJ metadata tag the annotations carry; it does not touch
+the pixel data and every measurement is unaffected. It can be ignored.
 
 **Not included:** the derived CSV and JSON files the figure scripts read — the tune
 outputs, the per-image measurement tables, the reference-field results.

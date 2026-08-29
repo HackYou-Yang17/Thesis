@@ -6,7 +6,8 @@ venv/
 .env
 .DS_Store
 Thumbs.db
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/
 
 # run outputs — regenerate, do not commit
