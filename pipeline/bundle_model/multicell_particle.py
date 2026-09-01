@@ -161,9 +161,7 @@ class MultiCell:
 
         Why this exists: the tiling puts a cell centre on the canvas centre, so the centred crop is
         one cell's interior plus two clipped membranes. The traced images are windows onto a
-        confluent sheet — mostly partial cells meeting at membranes and tricellular vertices — so the
-        crop needs to be placed there instead. Partial cells are the POINT; nothing here asks for a
-        whole cell.
+        confluent sheet. This will automatically offset the window to show the most amount of cells.
 
         Constraints kept: crop side is untouched (self.crop_size), the window stays inside the
         canvas, and it must be FULLY covered by the sheet so no black non-tissue wedge enters the
