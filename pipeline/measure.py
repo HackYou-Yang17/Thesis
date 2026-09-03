@@ -196,5 +196,175 @@ def measure_all(m, seed=0):
     g = gap(m)
     st = structure(m)
     fm, fm8 = foam2(m)
+    fb = fibres(m)                      # ADDITIVE: fib_* only; no existing key changes
     return dict(density=density(m), order=order(m, seed=seed), foam=fm, foam_ge8=fm8,
-                gap_p90=g[90], gap_p95=g[95], coverage=float(m.mean()), **st)
+                gap_p90=g[90], gap_p95=g[95], coverage=float(m.mean()), **st, **fb)
+
+
+# ── fibre stitching: whole fibres THROUGH junctions ──────────────────────────
+# ADDITIVE. Nothing above this line is touched; seg_len_um and every other key are unchanged.
+#
+# WHY: seg_len_um measures runs BETWEEN junctions, so it is mechanically entangled with how
+# many crossings there are -- more crossings cut the same fibre into more, shorter pieces.
+# fib_len_um traces a fibre THROUGH its crossings, so "how long are the fibres" is separated
+# from "how many times do they cross".
+#
+# TWO DEVIATIONS FROM THE OBVIOUS IMPLEMENTATION, both deliberate and both measured below:
+#  * LENGTH IS EUCLIDEAN PATH LENGTH (1.0 orthogonal, sqrt(2) diagonal), not pixel count.
+#    NOTE THAT structure()'s seg_len_um IS A PIXEL COUNT, so it under-measures a diagonal run
+#    by up to 41 %. The two length statistics are therefore NOT on the same scale and must not
+#    be differenced. seg_len_um is left exactly as it is -- changing it would move a number the
+#    whole v9-v13 record is quoted against.
+#  * WALK ORDER IS LONGEST-EDGE-FIRST. The stitch is greedy, so which edge starts a fibre
+#    changes the result; starting from the longest unused run is a stated rule rather than
+#    label order, which is an artefact of ndi.label's raster scan.
+
+# max_turn_deg IS A NEW FREE PARAMETER in a pipeline whose selling point is having none, so it
+# is SWEPT and declared rather than chosen. Sweeping 15-60 deg (FIBRE_LENGTH.md, step 2): the
+# traced mean rises steeply to ~30 deg (+19 % from 15 to 30) and then flattens -- per-step change
+# 2.4 / 2.3 / 1.3 / 1.4 / 0.7 % across 35 / 40 / 45 / 50 / 60. 30 deg sits on the SHOULDER; the
+# plateau starts at ~35-40. 40 is taken. Two families at 90 deg are never merged at any value
+# tried up to 60 (their recovered length moves only +2.0 % -> +2.9 %), so the choice does not
+# risk the failure the parameter exists to prevent.
+_TURN_DEG = 40.0
+
+
+def _order_run(pts):
+    """Order one run's pixels end to end. Returns the ordered (row, col) array."""
+    if len(pts) == 1:
+        return pts
+    idx = {tuple(p): i for i, p in enumerate(map(tuple, pts))}
+    nbr = [[] for _ in pts]
+    for i, (r, c) in enumerate(pts):
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                if dr or dc:
+                    j = idx.get((r + dr, c + dc))
+                    if j is not None:
+                        nbr[i].append(j)
+    ends = [i for i, nb in enumerate(nbr) if len(nb) == 1]
+    start = ends[0] if ends else 0            # no end => closed loop, start anywhere
+    order, seen, cur, prev = [start], {start}, start, None
+    while True:
+        nxt = [j for j in nbr[cur] if j != prev and j not in seen]
+        if not nxt:
+            break
+        prev, cur = cur, nxt[0]
+        seen.add(cur)
+        order.append(cur)
+    return pts[order]
+
+
+def _path_len(p):
+    """Euclidean path length in pixels: 1.0 per orthogonal step, sqrt(2) per diagonal."""
+    if len(p) < 2:
+        return 0.0
+    d = np.abs(np.diff(p.astype(float), axis=0))
+    return float(np.sum(np.where(d.sum(1) == 2, np.sqrt(2.0), 1.0)))
+
+
+def _end_dir(p, k=8):
+    """Outward unit direction at each end, least squares over the terminal min(k, len) pixels.
+
+    Returns (d_start, d_end), each pointing OUT of the run at that end.
+    """
+    def fit(seg, tip):
+        seg = seg.astype(float)
+        if len(seg) < 2:
+            return np.array([0.0, 0.0])
+        u, s, vt = np.linalg.svd(seg - seg.mean(0))
+        d = vt[0]
+        away = tip - seg.mean(0)
+        return d if float(d @ away) >= 0 else -d
+    kk = min(k, len(p))
+    return fit(p[:kk][::-1], p[0].astype(float)), fit(p[-kk:], p[-1].astype(float))
+
+
+def fibres(mask, max_turn_deg=_TURN_DEG, min_len_px=MIN_SEG_PX):
+    """Stitch skeleton runs through junctions into whole fibres.
+
+    Returns dict(fib_count, fib_len_um, fib_censored_frac).
+    """
+    sk = skeletonize(np.asarray(mask, bool))
+    if sk.sum() == 0:
+        return dict(fib_count=0, fib_len_um=np.nan, fib_censored_frac=np.nan)
+    deg = ndi.convolve(sk.astype(int), _N8, mode="constant") - 1
+    jmask = sk & (deg >= 3)
+    # step 3: EXACTLY structure()'s segmentation, so the two statistics stay comparable
+    lab, n = ndi.label(sk & (deg < 3), structure=_N8)
+    if n == 0:
+        return dict(fib_count=0, fib_len_um=np.nan, fib_censored_frac=np.nan)
+    jlab, njun = ndi.label(jmask, structure=_N8)
+
+    H, W = sk.shape
+    objs = ndi.find_objects(lab)
+    runs = {}
+    for i in range(1, n + 1):
+        sl = objs[i - 1]
+        loc = np.argwhere(lab[sl] == i)
+        pts = loc + np.array([sl[0].start, sl[1].start])
+        p = _order_run(pts)
+        d0, d1 = _end_dir(p)
+        runs[i] = dict(pts=p, length=_path_len(p), d=(d0, d1),
+                       tips=(p[0], p[-1]),
+                       border=bool((p[:, 0] == 0).any() or (p[:, 1] == 0).any()
+                                   or (p[:, 0] == H - 1).any() or (p[:, 1] == W - 1).any()))
+
+    # which junction blob (if any) each run END touches
+    att = {}
+    for i, r in runs.items():
+        for e, tip in enumerate(r["tips"]):
+            js = set()
+            for dr in (-1, 0, 1):
+                for dc in (-1, 0, 1):
+                    rr, cc = tip[0] + dr, tip[1] + dc
+                    if 0 <= rr < H and 0 <= cc < W and jlab[rr, cc]:
+                        js.add(int(jlab[rr, cc]))
+            att[(i, e)] = js
+    incident = {j: [] for j in range(1, njun + 1)}
+    for (i, e), js in att.items():
+        for j in js:
+            incident[j].append((i, e))
+    jsize = np.bincount(jlab.ravel(), minlength=njun + 1)
+
+    used, fib = set(), []
+    for i in sorted(runs, key=lambda k: -runs[k]["length"]):     # longest first, stated rule
+        if i in used:
+            continue
+        used.add(i)
+        members, length, jpix = [i], runs[i]["length"], 0.0
+        for e0 in (1, 0):                       # extend from each end of the seed run
+            cur, ce = i, e0
+            while True:
+                cand = [(k, ee) for j in att[(cur, ce)] for (k, ee) in incident[j]
+                        if k not in used]
+                if not cand:
+                    break
+                d_in = runs[cur]["d"][ce]        # travel direction INTO the junction
+                best, bturn = None, 1e9
+                for (k, ee) in cand:
+                    d_out = -runs[k]["d"][ee]    # travel direction leaving along k
+                    cs_ = float(np.clip(d_in @ d_out, -1, 1))
+                    t = abs(np.degrees(np.arccos(cs_)))
+                    if t < bturn:
+                        best, bturn = (k, ee), t
+                if best is None or bturn > max_turn_deg:
+                    break
+                j_used = next(iter(att[(cur, ce)] & att[best]), None)
+                if j_used is not None:
+                    jpix += float(jsize[j_used])
+                k, ee = best
+                used.add(k)
+                members.append(k)
+                length += runs[k]["length"]
+                cur, ce = k, 1 - ee
+        fib.append(dict(length=length + jpix,
+                        border=any(runs[k]["border"] for k in members)))
+
+    L = np.array([f["length"] for f in fib])
+    B = np.array([f["border"] for f in fib])
+    keep = L >= min_len_px
+    tot = float(L.sum())
+    return dict(fib_count=int(keep.sum()),
+                fib_len_um=float(L[keep].mean() * SCALE_UM) if keep.any() else np.nan,
+                fib_censored_frac=float(L[B].sum() / tot) if tot > 0 else np.nan)

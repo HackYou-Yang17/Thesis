@@ -411,8 +411,33 @@ def gap_percentiles(mask, scale=1.0, percentiles=(50, 90, 95), tissue_mask=None,
        dominate the upper tail entirely. On a test volume with bounding planes the
        p95 is 9.5 px; remove the far bounding plane and the same structure reads
        17 px, an 80% inflation from the edge alone. ALWAYS pass `border_margin`
-       (in physical units, >= the expected gap scale) for real images, or the p95
-       measures how you cropped rather than how the mesh is built.
+       (in physical units) for real images, or the p95 measures how you cropped
+       rather than how the mesh is built.
+
+       WHAT THE MARGIN DOES, exactly: the distance transform still runs over the
+       WHOLE image, so a retained pixel can find any fibre in frame. The margin
+       only decides which pixels are TALLIED — those at least `border_margin`
+       from the outside. With no `tissue_mask` the outside is the image edge and
+       the retained region is the frame inset by that much on all four sides (an
+       axis-aligned rectangle, not a rounded one, since the distance to the
+       nearest outside pixel in a rectangle is min(dx, dy)). With a
+       `tissue_mask`, it is that mask eroded by the margin, so it follows the
+       tissue shape.
+
+       HOW BIG A MARGIN (measured 01 Sep 2026, 18 traced fields, 61.4 um at
+       0.40 um/px): an earlier version of this docstring advised
+       `border_margin >= the expected gap scale`. That is too conservative and
+       is not what the data show. At 4 um the retained region is 134/154 px per
+       side, 76% of the pixels. Raising the margin to 6/8/10 um lowers the
+       traced p95 by 9.6/16.4/20.7% — but a STRUCTURELESS random line field, in
+       which no edge artefact can exist by construction, falls by 10.0/16.6/22.3%
+       over the same change, and density-matched isotropic controls reproduce the
+       per-stage declines (traced -10 to -31% vs control -18 to -21% at 10 um,
+       straddling it with no systematic excess). The decline is therefore the
+       generic narrowing of an upper percentile on a shrinking sample, not
+       residual edge bias. Conclusion: a margin BELOW the reported p95 is fine;
+       going above it costs sample without buying bias reduction. What matters is
+       that every field compared is measured at the SAME margin.
 
     Returns
     -------

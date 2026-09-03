@@ -29,7 +29,6 @@ NOT CHANGED: every number. full.py reproduces the published values exactly
 """
 import json, sys
 import numpy as np
-sys.path.insert(0, "/mnt/user-data/uploads/thesis--thesis/pipeline")
 import thesisstyle as ts
 import matplotlib
 matplotlib.use("Agg")

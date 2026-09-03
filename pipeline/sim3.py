@@ -25,10 +25,18 @@ from bundle_model.parameters import UM_PER_LATTICE as LU
 
 HPF = np.array([32.0, 36.0, 40.0, 44.0, 48.0, 52.0])
 
+# HISTORICAL ONLY -- DO NOT USE AS A DEFAULT. Kept under its own name for provenance.
+# Until 2 Sep 2026 this dict WAS the default: configure() with no overrides set every rate from
+# it, silently overwriting whatever bundle_model/parameters.py commits. parameters.py has held
+# the v13 tune since 27 Aug, so run_once(seed=S) would have produced a v5 run that every log,
+# CSV and figure caption would have called v13 -- rate_grow off by 5.8x, angle_noise by 2.3x.
+# Nothing in the repo was actually affected (every caller passed an explicit overrides dict, and
+# that was checked before this was changed), but the trap was one careless call from firing.
+# THE DEFAULT IS NOW parameters.py, so the file a reader inspects is the file that runs.
 # v4 tune 2 -- the rate anchor (handover S5). NOT a fit at this geometry.
 # v5 tune (parameters_v5_tuned.py) -- the anchor for the SATURATED counterfactual, since it
 # is the best rate set known at this geometry. phi_max is carried here as an explicit knob.
-ANCHOR = dict(rate_nematic_depoly=0.011, rate_nematic_poly=0.006,
+ANCHOR_V5 = dict(rate_nematic_depoly=0.011, rate_nematic_poly=0.006,
               rate_grow=0.0283, rate_thin=0.006226, rate_branch=0.0020,
               rate_nucleate=0.120, nematic_thresh=0.35,
               angle_noise=float(np.pi / 10), axis_spread=float(np.pi / 6),
@@ -47,9 +55,30 @@ INT_KEYS = ("n_sub",)
 BASE_MPP = float(P.monomers_per_point)      # as parameters.py has it, before any override
 
 
+KNOBS = FLOAT_KEYS + INT_KEYS + ("phi_max",)
+
+
+def _read_committed():
+    """Every tunable exactly as bundle_model/parameters.py commits it."""
+    d = {k: float(getattr(P, k)) for k in FLOAT_KEYS}
+    d.update({k: int(getattr(P, k)) for k in INT_KEYS})
+    d["phi_max"] = None
+    return d
+
+
+# Snapshotted AT IMPORT, before any configure() call can mutate P. Reading it later would return
+# whatever the last configure() left behind, which is exactly the class of bug this replaces.
+COMMITTED = _read_committed()
+
+
+def committed():
+    """The committed tune, as a fresh dict. This is what configure() defaults to."""
+    return dict(COMMITTED)
+
+
 def configure(overrides=None):
-    k = {**ANCHOR, **(overrides or {})}
-    unknown = set(k) - set(ANCHOR)
+    k = {**COMMITTED, **(overrides or {})}
+    unknown = set(k) - set(KNOBS)
     if unknown:
         raise KeyError(f"unknown knob(s): {sorted(unknown)}")
     for name in FLOAT_KEYS:

@@ -6,7 +6,6 @@ local tangent there. Everything else is identical: same junctions, same disk(2) 
 same min(d, 180-d) fold, same synthetic ladder, same traced files.
 """
 import sys, glob, json, warnings
-sys.path.insert(0, "/mnt/user-data/uploads/thesis--thesis/pipeline")
 warnings.filterwarnings("ignore")
 import logging; logging.getLogger("tifffile").setLevel(logging.ERROR)
 
