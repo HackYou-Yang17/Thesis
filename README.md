@@ -9,8 +9,7 @@ and calibration code used to measure the hand-traced confocal images the model i
 calibrated against.
 
 **Scope rule (3 Sep 2026).** This repository holds the code that was used to produce the
-figures, tables, numbers and methods of the thesis, plus the hand-traced images it was run
-on — nothing else. Superseded routes, exploratory analyses and figure drafts have been removed; see
+figures, tables, numbers and methods of the thesis — nothing else. Superseded routes, exploratory analyses and figure drafts have been removed; see
 [What is not here](#what-is-not-here) and, more importantly,
 [What is missing](#what-is-missing--three-scorers-never-saved).
 
@@ -148,11 +147,12 @@ Python 3.11. `statsmodels` is imported lazily by a few reporting paths in
 
 ## Data
 
-`data/` carries the hand-traced images the model is calibrated against — 44 TIFFs, 1.5 MB.
-Three hearts at each of 32, 36, 40, 44, 48 and 52 hpf, plus the two cell-size images:
+The hand-traced images the model is calibrated against are **not included** in this
+repository. The set is 44 TIFFs (1.5 MB): three hearts at each of 32, 36, 40, 44, 48 and
+52 hpf, plus the two cell-size images. The scripts expect them laid out as:
 
 ```
-data/
+<TRACED_ROOT>/
     32hpf/ … 52hpf/     per stage:
         <stage>-<n>.tif                 the confocal image
         <stage>-<n> - Copy.tif          the hand-traced fibre annotation (red)
@@ -162,13 +162,9 @@ data/
     52hpf cell size - Copy.tif          its hand-traced cell boundaries (handcells.py reads this)
 ```
 
-Every script finds them through `pipeline/datapaths.py`, which resolves in this order:
-
-1. the `TRACED_ROOT` environment variable, if set
-2. `data/` at the repository root
-
-So the pipeline runs from a clean clone with no configuration. Point `TRACED_ROOT` at
-another directory to run it against a different set of traces.
+Every script finds them through `pipeline/datapaths.py`: set the `TRACED_ROOT`
+environment variable to the directory holding the set (without it, the scripts fall
+back to a `data/` directory at the repository root, which is not shipped).
 
 Reading these files prints `tifffile.imagej_metadata raised IndexError` on stderr. That is
 `tifffile` failing to parse an ImageJ metadata tag the annotations carry; it does not touch
